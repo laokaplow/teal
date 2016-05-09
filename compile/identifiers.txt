@@ -1,0 +1,17 @@
+
+    // translate tl identifiers to c++ identifiers (name mangling)
+    // by prefixing with TL, then the length of the original identifier in decimal digits
+    // followed by the characters
+      // letters and numbers are represented directly
+      // special characters are encoded as an underscore followed by a single digit n
+      //    followed by n uppercase letters representing the special character
+      //   or even better: TL0 followed by the characters, special characters are encoded as an underscore, foloowed by a upper case code name enclosed in 0's
+      // examples:
+      //         + becomes TL1_4PLUS
+      //         + becomes TL0_0PLUS0
+      //         symbol->int becomes TL11symbol_4DASH_6GREATERint
+      //         symbol->int becomes TL0symbol_0DASH0_0GREATER0int
+      // prefix could be _tl0
+
+    make<Parse::Result::Ok>
+    TL0make_0LESS0Parse_0COLON0_0COLON0Result_0COLON0_0COLON0Ok_0GREATER0

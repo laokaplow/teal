@@ -1,0 +1,45 @@
+
+IO/
+  read_file
+  get_line (stdin)
+  print (string)
+
+  File class
+  file view class (for parsing)
+
+parse/
+  go from file to
+
+verify/validate/
+  type check, form check
+  no duplicate definitions
+
+interpret/eval
+  syntax->action
+
+compile/
+  syntax->c++ code
+
+types/
+  type definitions
+  type specifier
+  type fn
+  values
+
+  procedure
+  atom
+  char/Byte
+  int
+  float
+  List
+  struct/record
+  either/variant/sum
+  map/dict/hash
+  set?
+
+built-ins
+
+
+special forms
+  if
+  loop
