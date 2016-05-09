@@ -9,9 +9,9 @@
 
 (: Syntax::Node (Record (
   [provenance Location]
-  [datum (Union (
-    [atom Atom]
-    [int Integer]
-    [float64 Float64]
-    [string String]
-    [sexpr (List Syntax)]))])))
+  [datum (Union [
+    Atom
+    Integer
+    Float64
+    String
+    (List Syntax)])])))
