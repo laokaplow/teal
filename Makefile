@@ -1,8 +1,14 @@
 .DEFAULT_GOAL = all
-.PHONY: all end
+.PHONY: all clean
 
-end:
-	@echo 3
+CXX := g++
+CXXFLAGS := -std=c++14 -Wall -Werror
 
-all:
-	@echo 5
+SRCS := $(wildcard src/*.cpp)
+HDRS := $(wildcard src/*.h)
+
+all: $(SRCS) $(HDRS)
+	$(COMPILE) $(SRCS) -o teal
+
+clean:
+	rm -rf teal

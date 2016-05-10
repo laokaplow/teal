@@ -1,14 +1,17 @@
 #ifndef TEXT_H_
 #define TEXT_H_
 
+#include "types.h"
+
 #include <string>
 #include <vector>
 #include <ostream>
+#include <fstream>
 
 namespace Text {
 
   struct Position {
-    const int offset = 0; // could be line + collumn in future
+    int offset = 0; // could be line + collumn in future
 
     Position step() const {
       return { offset + 1 };
@@ -20,8 +23,8 @@ namespace Text {
   };
 
   struct Location {
-    const Position begin = 0; // index to start
-    const Position end = 0; // one past index to end
+    const Position begin = {0}; // index to start
+    const Position end = {0}; // one past index to end
     const std::string filename = "";
 
     Location(const Position begin, const Position end, const std::string filename)
@@ -36,22 +39,47 @@ namespace Text {
     }
   };
 
-
   struct File {
-    const std::vector<char> contents;
-    const std::string name;
-    bool operator==(const File &other) {
+    std::string contents;
+    std::string name;
+    bool operator==(const File &other) const {
       return (name == other.name) && (contents == other.contents);
+    }
+
+    File(std::string contents, std::string name)
+      : contents(contents), name(name)
+    {}
+
+    static Ref<File> open(std::string filename) {
+      auto ifs = std::ifstream(filename);
+      return make<File>(
+        std::string(
+          (std::istreambuf_iterator<char>(ifs)),
+          std::istreambuf_iterator<char>()
+        ),
+        filename
+      );
     }
   };
 
   struct View {
-    const File &file;
-    const Position head;
+    File &file;
+    Position head;
 
-    View(File &file, Position start = {})
+    View(File &file, Position head = {})
       : file(file), head(head)
     {}
+
+    View &operator=(View &other) {
+      become(other);
+
+      return *this;
+    }
+
+    void become(View &other) {
+      head = other.head;
+      file = other.file;
+    }
 
     int size() const {
       return file.contents.size() - head.offset;
@@ -62,14 +90,15 @@ namespace Text {
     }
 
     char peek() const {
-      return file.contents[head.offest];
+      return file.contents[head.offset];
     }
 
     View tail() const {
       return View(file,  is_empty()? head : head.step());
     }
 
-    Location to(Position dest) {
+    Location to(const View& end) const {
+      auto dest = end.head;
       return Location(head, dest, file.name);
     }
 

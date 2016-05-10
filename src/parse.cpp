@@ -1,12 +1,13 @@
 #include "parse.h"
 
-#include "runtime.h"
 #include "syntax.h"
-#include "types/builtins.h"
+#include "types.h"
+#include "utilities.h"
 
 #include <set>
 #include <sstream>
 #include <string>
+#include <stdexcept>
 
 using namespace std;
 
@@ -30,6 +31,7 @@ namespace { // utilities
 }
 
 // exports
+Parse::Result::~Result() {}
 Ref<Parse::Result> Parse::parse(Text::File &f) {
   auto res = readExprs(f);
 
@@ -73,7 +75,6 @@ Ref<Parse::Result> readNumber(Text::View v) {
   if (!v.is_empty() && is_digit(v.peek())) {
     digits += pop(v);
   } else {
-    auto msg =
     return make<Parse::Result::Error>("Numbers must start with digit.", v);
   }
 
@@ -89,7 +90,7 @@ Ref<Parse::Result> readNumber(Text::View v) {
     // decimal must be followed by at least one digit
     if (!v.is_empty() && is_digit(v.peek())) {
       digits += pop(v);
-    else {
+    } else {
       auto msg = "Floats must have digit after decimal.";
       return make<Parse::Result::Error>(msg, v);;
     }
@@ -102,7 +103,7 @@ Ref<Parse::Result> readNumber(Text::View v) {
     return make<Parse::Result::Ok>(make<Float>(stod(digits)), start, v);
   }
 
-  return make<Parse::Result::Ok>(make<Integer>(stoi(digits), start, v);
+  return make<Parse::Result::Ok>(make<Integer>(stoi(digits)), start, v);
 }
 
 Ref<Parse::Result> readString(Text::View v) {
@@ -115,8 +116,8 @@ Ref<Parse::Result> readString(Text::View v) {
   char quote;
 
   // starts with ' or "
-  if (!v.is_empty() && v.peek() == '\'' || v.peek() == '"') {
-    opener = pop(v);
+  if (!v.is_empty() && ((v.peek() == '\'') || (v.peek() == '"'))) {
+    quote = pop(v);
   } else {
     return make<Parse::Result::Error>("Strings must start with a quote.", v);
   }
@@ -153,19 +154,20 @@ Ref<Parse::Result> readString(Text::View v) {
           contents += "\t";
           break;
 
-        case 'x': // hexidecimal
+        case 'x': {// hexidecimal
           pop(v);
           string hex_digits;
-          while (hex_digits.size() < 2)) {
+          while (hex_digits.size() < 2) {
             if (!v.is_empty() && is_hex(v.peek())) {
               hex_digits += pop(v);
             } else {
               auto msg = "Hex escape sequence must have two hex digits";
-              return make_Ref<Parse::Result::Error>(msg, v);
+              return make<Parse::Result::Error>(msg, v);
             }
           }
           contents += (char)stoi(hex_digits);
           break;
+        }
 
         default: // invalid escape sequence
           string msg = "Invalid escape sequence in string literal";
@@ -176,16 +178,16 @@ Ref<Parse::Result> readString(Text::View v) {
   }
 
   auto msg = "Unexpected <end of file> in string literal";
-  return make_Ref<Parse::Result::Error>(msg, v);
+  return make<Parse::Result::Error>(msg, v);
 }
 
 Ref<Parse::Result> readList(Text::View v) {
   auto begin = v;
   char opener;
-  auto contents = make<List<Sytax>>();
+  Ref<Syntax> contents;
 
   // starts with '(' or '['
-  if (!v.is_empty() && (v.peek() == '(' || v.peek() == '[' || v.peek() == '{'))) {
+  if (!v.is_empty() && ((v.peek() == '(') || (v.peek() == '[') || (v.peek() == '{'))) {
     opener = pop(v);
   } else {
     return make<Parse::Result::Error>("List must start with ( or [ or {", v);
@@ -195,30 +197,30 @@ Ref<Parse::Result> readList(Text::View v) {
   if (auto error = match<Parse::Result::Error>(r)) {
     return error;
   } else if (auto ok = match<Parse::Result::Ok>(r)) {
-    v = ok.leftover;
-    contents = ok.value;
+    v = ok->leftover;
+    contents = ok->value;
   } else {
-    RAISE("Parse::Result match error");
+    throw std::runtime_error("Parse::Result match error");
   }
 
   char closer = v.peek();
-  if (!v.is_empty() && ((opener == '(' && closer == ')')
-    || (opener == '[' && closer == ']')
-    || (opener == '{' && closer == '}')
+  if (!v.is_empty() && (((opener == '(') && (closer == ')'))
+    || ((opener == '[') && (closer == ']'))
+    || ((opener == '{') && (closer == '}')))
   ) {
     pop(v);
   } else {
-    auto msg = stringstream("Unmatched braces: ")
-      << start.head.offset << ", " << v.head.offset  << ".";
-    return make<Parse::Result::Error>(msg, v);
+    auto msg = stringstream("Unmatched braces: ");
+    msg << begin.head.offset << ", " << v.head.offset  << ".";
+    return make<Parse::Result::Error>(msg.str(), v);
   }
 
-  return make<Parse::Result::Ok>(contents, start, v);
+  return make<Parse::Result::Ok>(contents, begin, v);
 }
 
 Ref<Parse::Result> readExprs(Text::View v) {
   auto start = v;
-  auto nodes = make<List<Sytax>>();
+  auto nodes = make<List>();
 
   while (!v.is_empty()) {
     // ignore whitespace
@@ -228,9 +230,9 @@ Ref<Parse::Result> readExprs(Text::View v) {
     }
     // ignore comments
     if (v.peek() == ';') { // line comment
-      pop(v)
+      pop(v);
       // advance to the end of the line
-      while (!v.is_empty() && v.peek() != '\n') {
+      while (!v.is_empty() && (v.peek() != '\n')) {
         pop(v);
       }
       continue;
@@ -241,18 +243,18 @@ Ref<Parse::Result> readExprs(Text::View v) {
     for (auto read : {readAtom, readNumber, readString, readList}) {
       auto r = read(v);
       if (auto ok = match<Parse::Result::Ok>(r)) {
-        nodes.append(ok->value);
+        nodes = cons(ok->value, nodes);
         v = ok->leftover;
         progress = true;
         break;
-      } else if (auto error = match<Result::Error>(r)) {
-        if (v == error.leftover) { // didn't get anywhere
+      } else if (auto error = match<Parse::Result::Error>(r)) {
+        if (v == error->leftover) { // didn't get anywhere
           continue;
         } else {
           return error;
         }
       } else {
-        RAISE("Parse::Result match error");
+        throw std::runtime_error("Parse::Result match error");
       }
     }
 
@@ -261,7 +263,7 @@ Ref<Parse::Result> readExprs(Text::View v) {
     }
   }
 
-  return make<Parse::Result::Ok>(nodes, start, v);
+  return make<Parse::Result::Ok>(reverse(nodes), start, v);
 }
 
 }
@@ -270,7 +272,8 @@ namespace { // utilities
 
 char pop(Text::View& v) {
   char c = v.peek();
-  v = v.tail();
+  auto n = v.tail();
+  v.become(n);
   return c;
 }
 
@@ -288,14 +291,14 @@ bool is_letter(char c) {
 }
 
 bool is_whitespace(char c) {
-  static const set<char> = {' ', '\t', '\n'};
+  static const set<char> whitespace = {' ', '\t', '\n'};
   return whitespace.count(c);
 }
 
 bool is_atom_special_char(char c) {
   static const set<char> special = {
-    '+', '-', '/', '*', '=', '&', '|', '>', '<', '%', '^', '_'
-    '!', '?', ':', '.', '@', '#', '$', '~', '\`', ','
+    '+', '-', '/', '*', '=', '&', '|', '>', '<', '%', '^', '_',
+    '!', '?', ':', '.', '@', '#', '$', '~', '`', ','
   };
   return special.count(c);
 }

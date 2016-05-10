@@ -1,9 +1,10 @@
 #ifndef PARSE_H_
 #define PARSE_H_
 
-#include "runtime.h"
-#include "syntax.h"
 #include "text.h"
+#include "syntax.h"
+#include "types.h"
+#include "memory.h"
 
 #include <string>
 
@@ -17,13 +18,13 @@ namespace Parse {
 
     Result(Text::View leftover) : leftover(leftover) {}
 
-    virtual ~Result = 0;
+    virtual ~Result() = 0;
   };
 
   struct Result::Ok : public Result {
     Ref<Syntax> value;
 
-    Ok(Ref<Value> value, Text::View begin, const Text::View end)
+    Ok(Ref<Value> value, const Text::View begin, const Text::View end)
       : Result(end), value(make<Syntax>(begin.to(end), value))
     {}
   };
@@ -31,12 +32,12 @@ namespace Parse {
   struct Result::Error : public Result {
     const std::string msg;
 
-    Error(const std::string msg, Text::View leftover)
+    Error(const std::string msg, const Text::View leftover)
       : Result(leftover), msg(msg)
     {}
   };
 
-  Ref<Result> parse(Text::file f);
+  Ref<Result> parse(Text::File &f);
 }
 
 #endif

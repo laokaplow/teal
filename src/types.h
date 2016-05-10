@@ -1,37 +1,52 @@
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef TYPES_H_
+#define TYPES_H_
+
+#include "memory.h"
 
 #include <functional>
 #include <string>
 
 struct Value {
   virtual ~Value() = 0;
-  virtual bool is_self_evaluating() { return true; }
-}
+  virtual bool is_self_evaluating() const { return true; }
+  // virtual std::string show() const = 0;
+};
 
 struct ExternallyEvaluated {
   virtual bool is_self_evaluating() { return false; }
-}
+};
 
 struct Atom : public Value {
-  string value;
+  std::string value;
+
+  Atom(std::string value = "") : value(value) {}
 };
 
 struct Bool : public Value {
   bool value;
-}
+};
 
 struct Character : public Value {
   char value;
-}
+};
 
 struct Integer : public Value {
   int value;
+
+  Integer(int value) : value(value) {}
 };
 
 struct Float : public Value {
   double value;
-}
+
+  Float(double value) : value(value) {}
+};
+
+struct String : public Value {
+  std::string value;
+
+  String(std::string value) : value(value) {}
+};
 
 struct List : public Value {
   struct Empty;
@@ -39,7 +54,7 @@ struct List : public Value {
 };
 
 struct List::Empty : public List {
-}
+};
 
 struct List::Node : public List, public ExternallyEvaluated {
   Ref<Value> first;
@@ -48,37 +63,24 @@ struct List::Node : public List, public ExternallyEvaluated {
   Node(Ref<Value> first, Ref<List> rest = make<List::Empty>())
     : first(first), rest(rest)
   {}
+
+
 };
 
-struct Procedure : public Value {
-  struct Primitive;
-  struct Compound;
+struct PrimitiveProcedure : public Value {
+  std::function<Ref<Value>(Ref<Value>)> fn;
 
-  virtual Ref<Value> apply(Ref<Value> args, Ref<Value> env) = 0;
-};
-
-struct Procedure::Compound {
-    Ref<Value> lexical_environment;
-    Ref<Value> param_list;
-    Ref<Value> body;
-
-    Ref<Value> apply(Ref<Value> args, Ref<Value> env);
-}
-
-struct Procedure::Primitive {
-  std::function<Ref<Value>, Ref<Value> > fn;
-
-  Ref<Value> apply(Ref<Value> args, Ref<Value> env) {
+  Ref<Value> apply(Ref<Value> args) {
     return fn(args);
   }
 };
 
 struct SpecialForm : public Value {
-  std::function<Ref<Value>, Ref<Value> > fn;
+  std::function<Ref<Value>(Ref<Value>)> fn;
 
-  Ref<Value> eval(Ref<List> args) const {
+  Ref<Value> eval(Ref<List> args, Ref<Value> env) const {
     return fn(args);
   }
-}
+};
 
 #endif
