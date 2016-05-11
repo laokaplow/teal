@@ -5,11 +5,12 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 struct Value {
   virtual ~Value() = 0;
   virtual bool is_self_evaluating() const { return true; }
-  // virtual std::string show() const = 0;
+  virtual std::string show() const = 0;
 };
 
 struct ExternallyEvaluated {
@@ -20,40 +21,64 @@ struct Atom : public Value {
   std::string value;
 
   Atom(std::string value = "") : value(value) {}
+  std::string show() const {
+    return value;
+  }
 };
 
 struct Bool : public Value {
   bool value;
+
+  std::string show() const {
+    return std::to_string(value);
+  }
 };
 
 struct Character : public Value {
   char value;
+
+  std::string show() const {
+    return std::to_string(value);
+  }
 };
 
 struct Integer : public Value {
   int value;
 
   Integer(int value) : value(value) {}
+
+  std::string show() const {
+    return std::to_string(value);
+  }
 };
 
 struct Float : public Value {
   double value;
 
   Float(double value) : value(value) {}
+  std::string show() const {
+    return std::to_string(value);
+  }
 };
 
 struct String : public Value {
   std::string value;
 
   String(std::string value) : value(value) {}
+  std::string show() const {
+    return std::string("\"") + value + "\"";
+  }
 };
 
 struct List : public Value {
   struct Empty;
   struct Node;
+
+  static Ref<List> fromVec(std::vector<Ref<Value>> v);
 };
 
 struct List::Empty : public List {
+  std::string show() const { return "()"; };
 };
 
 struct List::Node : public List, public ExternallyEvaluated {
@@ -64,6 +89,19 @@ struct List::Node : public List, public ExternallyEvaluated {
     : first(first), rest(rest)
   {}
 
+  std::string show() const {
+    std::string buffer = "(";
+    buffer += first->show();
+    auto rem = rest;
+    while (auto more = match<List::Node>(rem)) {
+      buffer += " ";
+      buffer += more->first->show();
+      rem = more->rest;
+    }
+    buffer += ")";
+
+    return buffer;
+  };
 
 };
 
@@ -73,6 +111,8 @@ struct PrimitiveProcedure : public Value {
   Ref<Value> apply(Ref<Value> args) {
     return fn(args);
   }
+
+  std::string show() const { return "primitive procedure"; };
 };
 
 struct SpecialForm : public Value {

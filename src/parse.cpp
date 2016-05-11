@@ -8,6 +8,11 @@
 #include <sstream>
 #include <string>
 #include <stdexcept>
+#include <vector>
+
+#include <cctype>
+
+#include <iostream>
 
 using namespace std;
 
@@ -37,8 +42,9 @@ Ref<Parse::Result> Parse::parse(Ref<Text::File> f) {
 
   // make sure we have parsed the whole file
   if (auto ok = match<Parse::Result::Ok>(res)) {
+    // cout << ok->value->show() << "\n";
     if (!ok->leftover.is_empty()) {
-      return make<Parse::Result::Error>("Expected end of file.", ok->leftover);
+      return make<Parse::Result::Error>("Expected end of file after exprs.", ok->leftover);
     }
   }
 
@@ -64,7 +70,7 @@ Ref<Parse::Result> readAtom(Text::View v) {
   while (!v.is_empty() && is_valid_atom_char(v.peek())) {
       value += pop(v);
   }
-
+  // cout << "read atom "<< value << "\n";
   return make<Parse::Result::Ok>(make<Atom>(value), start, v);
 }
 
@@ -126,6 +132,7 @@ Ref<Parse::Result> readString(Text::View v) {
     char c = pop(v);
 
     if (c == quote) { // end of string
+      // cout << "read string " << contents.length() << "\n";
       return make<Parse::Result::Ok>(make<String>(contents), start, v);
     }
 
@@ -156,7 +163,7 @@ Ref<Parse::Result> readString(Text::View v) {
 
         case 'x': {// hexidecimal
           pop(v);
-          string hex_digits;
+          string hex_digits = "";
           while (hex_digits.size() < 2) {
             if (!v.is_empty() && is_hex(v.peek())) {
               hex_digits += pop(v);
@@ -165,7 +172,7 @@ Ref<Parse::Result> readString(Text::View v) {
               return make<Parse::Result::Error>(msg, v);
             }
           }
-          contents += (char)stoi(hex_digits);
+          contents += (char)stoi(hex_digits, 0, 16);
           break;
         }
 
@@ -174,6 +181,8 @@ Ref<Parse::Result> readString(Text::View v) {
           return make<Parse::Result::Error>(msg, v);
           break;
       }
+    } else {
+      contents += c;
     }
   }
 
@@ -204,14 +213,17 @@ Ref<Parse::Result> readList(Text::View v) {
   }
 
   char closer = v.peek();
-  if (!v.is_empty() && (((opener == '(') && (closer == ')'))
+  if (!v.is_empty() &&
+    (  ((opener == '(') && (closer == ')'))
     || ((opener == '[') && (closer == ']'))
     || ((opener == '{') && (closer == '}')))
   ) {
     pop(v);
   } else {
-    auto msg = stringstream("Unmatched braces: ");
-    msg << begin.head.offset << ", " << v.head.offset  << ".";
+    auto msg = stringstream();
+    // cout << opener << " " << closer << ";\n";
+    msg << "Unmatched braces: "
+        << begin.show() << ", " << v.show() << ".";
     return make<Parse::Result::Error>(msg.str(), v);
   }
 
@@ -220,7 +232,7 @@ Ref<Parse::Result> readList(Text::View v) {
 
 Ref<Parse::Result> readExprs(Text::View v) {
   auto start = v;
-  auto nodes = make<List>();
+  auto nodes = vector<Ref<Value>>();
 
   while (!v.is_empty()) {
     // ignore whitespace
@@ -243,7 +255,8 @@ Ref<Parse::Result> readExprs(Text::View v) {
     for (auto read : {readAtom, readNumber, readString, readList}) {
       auto r = read(v);
       if (auto ok = match<Parse::Result::Ok>(r)) {
-        nodes = cons(ok->value, nodes);
+        nodes.push_back(ok->value);
+        // cout << List::fromVec(nodes)->show() << "\n";
         v = ok->leftover;
         progress = true;
         break;
@@ -263,7 +276,7 @@ Ref<Parse::Result> readExprs(Text::View v) {
     }
   }
 
-  return make<Parse::Result::Ok>(reverse(nodes), start, v);
+  return make<Parse::Result::Ok>(List::fromVec(nodes), start, v);
 }
 
 }
@@ -291,6 +304,7 @@ bool is_letter(char c) {
 }
 
 bool is_whitespace(char c) {
+  return isspace(c);
   static const set<char> whitespace = {' ', '\t', '\n'};
   return whitespace.count(c);
 }

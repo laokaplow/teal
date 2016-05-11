@@ -33,7 +33,7 @@ namespace Parse {
     const std::string msg;
 
     Error(const std::string msg, const Text::View leftover)
-      : Result(leftover), msg(msg)
+      : Result(leftover), msg(std::string("Parse Error @(") + leftover.show() + "): " + msg)
     {}
   };
 

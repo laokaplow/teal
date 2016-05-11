@@ -7,18 +7,29 @@
 #include <vector>
 #include <ostream>
 #include <fstream>
+#include <iostream>
 
 namespace Text {
 
   struct Position {
     int offset = 0; // could be line + collumn in future
+    int line = 1;
+    int collumn = 1;
 
-    Position step() const {
-      return { offset + 1 };
+    Position step(char c) const {
+      return {
+        offset + 1,
+        ((c=='\n')? line + 1 : line),
+        ((c=='\n')? 1: collumn + 1)
+      };
     }
 
     bool operator==(const Position &other) const {
       return offset == other.offset;
+    }
+
+    std::string show() const {
+      return std::to_string(line) + ":" + std::to_string(collumn);
     }
   };
 
@@ -76,6 +87,10 @@ namespace Text {
       return *this;
     }
 
+    std::string show() const {
+      return head.show();
+    }
+
     void become(View &other) {
       head = other.head;
       file = other.file;
@@ -86,6 +101,7 @@ namespace Text {
     }
 
     bool is_empty() const {
+      // std::cout << file.contents.size() << " " << head.offset << "\n";
       return size() == 0;
     }
 
@@ -94,7 +110,7 @@ namespace Text {
     }
 
     View tail() const {
-      return View(file,  is_empty()? head : head.step());
+      return View(file,  is_empty()? head : head.step(peek()));
     }
 
     Location to(const View& end) const {

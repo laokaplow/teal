@@ -12,6 +12,10 @@ struct Syntax : Value {
   Syntax(Text::Location where, Ref<Value> data)
     : where(where), data(data)
   {}
+
+  std::string show() const {
+    // return std::string("<Syntax: ") + data->show() + ">"; };
+    return data->show(); };
 };
 
 #endif
