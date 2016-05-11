@@ -193,7 +193,7 @@ Ref<Parse::Result> readString(Text::View v) {
 Ref<Parse::Result> readList(Text::View v) {
   auto begin = v;
   char opener;
-  Ref<Syntax> contents;
+  Ref<Value> contents;
 
   // starts with '(' or '['
   if (!v.is_empty() && ((v.peek() == '(') || (v.peek() == '[') || (v.peek() == '{'))) {

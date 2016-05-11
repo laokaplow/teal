@@ -22,10 +22,12 @@ namespace Parse {
   };
 
   struct Result::Ok : public Result {
-    Ref<Syntax> value;
+    // Ref<Syntax> value;
+    Ref<Value> value;
 
     Ok(Ref<Value> value, const Text::View begin, const Text::View end)
-      : Result(end), value(make<Syntax>(begin.to(end), value))
+      // : Result(end), value(make<Syntax>(begin.to(end), value))
+      : Result(end), value(value)
     {}
   };
 
