@@ -1,6 +1,6 @@
 (define lines (read_lines))
 (define height (len lines))
-(define width (len (first lines))
+(define width (len (first lines)))
 
 (define start-node ())
 (define end-node ())
@@ -92,7 +92,7 @@
       (lambda (neighbor)
         (if (= (- dist 1) (get-member neighbor (quote dist)))
           (set! here neighbor)
-          nil))))
+          nil)))))
 
 ; print results
 (define dist-to-exit (get-member end-node (quote dist)))
