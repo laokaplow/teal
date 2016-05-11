@@ -10,15 +10,22 @@ using namespace std;
 
 Ref<Value> interpret_file(string filename) {
   auto env = default_env();
-  auto res = Parse::parse(Text::File::open(string(argv[1])));
+
+  auto file = Text::File::open(filename);
+  cout << filename << "\n" << file->contents << "\n";
+  
+  auto res = Parse::parse(file);
   if (auto ok = match<Parse::Result::Ok>(res)) {
-      eval_list(ok->value, default_env());
+    cout << "parse ok!\n";
+    cout << ok->value->show() << "\n";
+    try {
+      // eval_list(ok->value, default_env());
       return 0;
     } catch(...) {
       cout << "Runtime Error.\n";
     }
   } else if (auto err = match<Parse::Result::Error>(res)) {
-    throw "Parse Error\n";
+    cout << "Parse Error: " << err->msg << "\n";
   }
   return env;
 }
