@@ -13,10 +13,6 @@ struct Value {
   virtual std::string show() const = 0;
 };
 
-struct ExternallyEvaluated {
-  virtual bool is_self_evaluating() { return false; }
-};
-
 struct Atom : public Value {
   std::string value;
 
@@ -24,6 +20,8 @@ struct Atom : public Value {
   std::string show() const {
     return value;
   }
+
+  bool is_self_evaluating() const override { return false; }
 };
 
 struct Bool : public Value {
@@ -81,7 +79,7 @@ struct List::Empty : public List {
   std::string show() const { return "()"; };
 };
 
-struct List::Node : public List, public ExternallyEvaluated {
+struct List::Node : public List{
   Ref<Value> first;
   Ref<List> rest;
 
@@ -103,6 +101,7 @@ struct List::Node : public List, public ExternallyEvaluated {
     return buffer;
   };
 
+  virtual bool is_self_evaluating() const override { return false; }
 };
 
 struct PrimitiveProcedure : public Value {
@@ -116,11 +115,17 @@ struct PrimitiveProcedure : public Value {
 };
 
 struct SpecialForm : public Value {
-  std::function<Ref<Value>(Ref<Value>)> fn;
+  std::function<Ref<Value>(Ref<List>, Ref<List::Node>)> fn;
 
-  Ref<Value> eval(Ref<List> args, Ref<Value> env) const {
-    return fn(args);
+  SpecialForm(std::function<Ref<Value>(Ref<List>, Ref<List::Node>)> fn)
+    : fn(fn)
+  {}
+
+  Ref<Value> eval(Ref<List> unevaluated_args, Ref<List::Node> env) {
+    return fn(unevaluated_args, env);
   }
+
+  std::string show() const { return "Special form."; };
 };
 
 #endif

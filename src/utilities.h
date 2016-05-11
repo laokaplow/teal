@@ -6,21 +6,28 @@
 
 #include <iostream>
 
-Ref<Value> eval(Ref<Value> expr, Ref<List> env);
+void error(std::string msg, Ref<Value> obj = {});
+
 Ref<Value> apply(Ref<Value> proc, Ref<List> args);
 
-Ref<List> eval_each(Ref<List> exprs, Ref<List> env);
-Ref<List> default_env();
+Ref<Value> eval(Ref<Value> expr, Ref<List::Node> env);
+Ref<List> eval_each(Ref<List> exprs, Ref<List::Node> env);
+
+/// env ops
+Ref<List::Node> default_env();
+Ref<List> env_lookup(Ref<List::Node> env, Ref<Atom> name);
+void env_set(Ref<List::Node> env, Ref<Atom> name, Ref<Value> new_val);
 
 ////
 /// List ops
 //
 Ref<List> nil();
 Ref<List> cons(Ref<Value> a, Ref<List> b = nil());
-Ref<List> pair(Ref<Value> a, Ref<Value> b);
+Ref<List> mk_pair(Ref<Value> a, Ref<Value> b);
 Ref<List> zip(Ref<List> as, Ref<List> bs);
-Ref<Value> list_after(Ref<List> l, int index);
+Ref<Value> list_after(int index, Ref<List> l);
 Ref<List> reverse(Ref<List> l,Ref<List> reveresed = nil());
+
 
 namespace alist {
   Ref<List> lookup(std::string, Ref<List> dict);

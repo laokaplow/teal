@@ -1,27 +1,52 @@
 #include "utilities.h"
 #include "types.h"
 
+#include "debug.h"
+
 #include <stdexcept>
 
 using namespace std;
 
-void error(string msg, Ref<Value> obj = {}) {
+void error(string msg, Ref<Value> obj) {
   throw runtime_error(msg);
 }
 
+Ref<Value> apply(Ref<Value> proc, Ref<List> args) {
+  if (auto p = match<PrimitiveProcedure>(proc)) {
+    return p->apply(args);
+  } else if (auto p = match<List::Node>(proc)) {
+    auto lexical_env = match<List::Node>(list_after(0, p));
+    auto params = match<List>(list_after(1, p));
+    auto body = match<List>(list_after(2, p));
 
-Ref<Value> lookup_variable_value(Ref<Atom> name, Ref<List> env);
-Ref<List> list_of_values(Ref<List> exps, Ref<List> env);
+    if (!(lexical_env && params && body)) {
+      error("malformed functor");
+    }
 
-Ref<Value> eval(Ref<Value> exp, Ref<List> env) {
+    // pair args
+    // extend-environment
+    // eval in new env
+
+  } else {
+    error("Unable to apply args - wrong type.");
+  }
+
+  return nil();
+}
+
+Ref<Value> eval(Ref<Value> exp, Ref<List::Node> env) {
+  DEBUG("Evaluating: " << exp->show());
   // terminal values
   if (exp->is_self_evaluating()) {
+    DEBUG("is self evaluating");
     return exp;
   }
 
   // variable
-  if (auto atom = match<Atom>(exp)) {
-    return lookup_variable_value(atom, env);
+  if (auto name = match<Atom>(exp)) {
+      DEBUG("is atom");
+      auto value = list_after(1, env_lookup(env, name));
+      return value;
   }
 
   //  s-expr
@@ -30,33 +55,30 @@ Ref<Value> eval(Ref<Value> exp, Ref<List> env) {
     auto rest = sexpr->rest;
 
     if (auto form = match<SpecialForm>(head)) {
+        DEBUG("is special form");
       // may not evaluate all args, and/or may modify the env
       return form->eval(rest, env);
     }
 
-    return apply(head, list_of_values(rest, env));
+    DEBUG("is function");
+    return apply(head, eval_each(rest, env));
   }
 
   error("Unknown expression type - EVAL");
   return nil();
 }
 
-Ref<Value> apply(Ref<Value> proc, Ref<List> args) {
-  if (auto p = match<PrimitiveProcedure>(proc)) {
-    return p->apply(args);
-  } else if (auto p = match<List::Node>(proc)) {
-    auto lexical_env = alist::lookup("lexical_env", p);
-    auto parameters = alist::lookup("params", p);
-    auto body = alist::lookup("body", p);
-
-    // extend-environment
-
-  } else {
-    error("Unable to apply args - wrong type.");
+Ref<List> eval_each(Ref<List> exps, Ref<List::Node> env) {
+  if (auto none = match<List::Empty>(exps)) {
+    return nil();
   }
-
+  if (auto some = match<List::Node>(exps)) {
+    auto first = eval(some->first, env);
+    return cons(first, eval_each(some->rest, env));
+  }
   return nil();
 }
+
 namespace alist {
   Ref<List> lookup(string key, Ref<List> pairs) {
     return lookup(make<Atom>(key), pairs);
@@ -64,46 +86,39 @@ namespace alist {
 
   Ref<List> lookup(Ref<Value> key, Ref<List> pairs) {
     if (auto l = match<List::Node>(pairs)) {
-      if (auto p = match<List::Node>(l->first)) {
-        if (eq(key, p->first)) {
-          return p->rest;
+      if (auto kv = match<List::Node>(l->first)) {
+        if (eq(key, kv->first)) {
+          return kv;
         }
       } else {
         error("Malformed A-List, pair was not List::Node");
       }
     }
+    // if not found
     return nil();
   }
 }
 
-Ref<Value> lookup_variable_value(Ref<Atom> name, Ref<List> env) {
-  if (auto frames = match<List::Node>(env)) {
-    if (auto table = match<List>(frames->first)) {
-      if (auto res = match<List::Node>(alist::lookup(name, table))) {
-          return res;
-      }
-    } else {
-      error("env frame is not list");
+Ref<List> env_lookup(Ref<List::Node> env, Ref<Atom> name) {
+  if (auto frame = match<List::Node>(env->first)) {
+    if (auto kv = match<List::Node>(alist::lookup(name, frame))) {
+        return kv;
     }
-
-    return lookup_variable_value(name, frames->rest);
+  } else {
+    if (auto more = match<List::Node>(env->rest)) {
+      return env_lookup(more, name);
+    }
   }
-
-
   // can't find value in empty env
-  error("Variable not found in env.");
+  error(string("Lookup error, atom `") + name->show() +"` does not name a value in the env.");
   return nil();
 };
 
-Ref<List> list_of_values(Ref<List> exps, Ref<List> env) {
-  if (auto none = match<List::Empty>(exps)) {
-    return nil();
+void env_set(Ref<List::Node> env, Ref<Atom> name, Ref<Value> new_val) {
+  if (auto kv = match<List::Node>(env_lookup(env, name))) {
+    kv->rest = cons(new_val, nil());
   }
-  if (auto some = match<List::Node>(exps)) {
-    return cons(eval(some->first, env), list_of_values(some->rest, env));
-  }
-  return nil();
-}
+};
 
 
 Ref<List> nil() {
@@ -115,7 +130,7 @@ Ref<List> cons(Ref<Value> a, Ref<List> b) {
 }
 
 Ref<List> mk_pair(Ref<Value> a, Ref<Value> b) {
-  return cons(a, cons(b));
+  return cons(a, cons(b, nil()));
 }
 
 Ref<List> zip(Ref<List> keys, Ref<List> vals) {
@@ -133,12 +148,12 @@ Ref<List> zip(Ref<List> keys, Ref<List> vals) {
   return nil();
 };
 
-Ref<Value> list_after(Ref<List> l, int index) {
+Ref<Value> list_after(int index, Ref<List> l) {
   if (auto xs = match<List::Node>(l)) {
      if (index == 0) {
       return xs->first;
     } else {
-      return list_after(xs->rest, index-1);
+      return list_after(index-1, xs->rest);
     }
   }
   return nil();
