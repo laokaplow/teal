@@ -13,16 +13,18 @@ Ref<Value> interpret_file(string filename) {
 
   auto file = Text::File::open(filename);
   cout << filename << "\n" << file->contents << "\n";
-  
+
   auto res = Parse::parse(file);
   if (auto ok = match<Parse::Result::Ok>(res)) {
     cout << "parse ok!\n";
     cout << ok->value->show() << "\n";
     try {
-      // eval_list(ok->value, default_env());
+      cout << "before eval\n";
+      eval_each(match<List>(ok->value), default_env());
+      cout << "after eval\n";
       return 0;
-    } catch(...) {
-      cout << "Runtime Error.\n";
+    } catch (std::runtime_error &e) {
+      cout << "Runtime Error: " << e.what() << "\n";
     }
   } else if (auto err = match<Parse::Result::Error>(res)) {
     cout << "Parse Error: " << err->msg << "\n";
