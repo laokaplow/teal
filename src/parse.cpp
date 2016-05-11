@@ -32,8 +32,8 @@ namespace { // utilities
 
 // exports
 Parse::Result::~Result() {}
-Ref<Parse::Result> Parse::parse(Text::File &f) {
-  auto res = readExprs(f);
+Ref<Parse::Result> Parse::parse(Ref<Text::File> f) {
+  auto res = readExprs(*f);
 
   // make sure we have parsed the whole file
   if (auto ok = match<Parse::Result::Ok>(res)) {

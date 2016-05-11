@@ -37,7 +37,7 @@ namespace Parse {
     {}
   };
 
-  Ref<Result> parse(Text::File &f);
+  Ref<Result> parse(Ref<Text::File> f);
 }
 
 #endif

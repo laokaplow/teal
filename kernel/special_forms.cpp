@@ -1,4 +1,9 @@
 
+void define_special_form(env, name, impl) {
+  add name, impl to top frame of env
+  consider doing some error checking
+}
+
 void define_special_forms(Ref<List> env) {
   define_special_form(env, "quote", [](Ref<List> args, Ref<List> env) {
     // return arguments unevaluated
@@ -22,19 +27,20 @@ void define_special_forms(Ref<List> env) {
 
     return eval((condition.value? then_clause: else_clause), env;
   });
+
   define_special_form(env, "lambda", [](Ref<List> args, Ref<List> env) {
     auto parameters = pop(args);
     auto body = pop(args);
-
 
     return make<Procedure::compound>(parameters, body, env);
   });
 
   define_special_form(env, "begin") [](Ref<List> args, Ref<List> env) {
-
+    // do each in turn and return the last
   });
 
   // (define let)
   define_special_form(env, "let", [](Ref<List> args, Ref<List> env) {
+    // rewrite into lambda, then call with args
   });
 }
