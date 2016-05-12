@@ -1,0 +1,6 @@
+(define * 1)
+(display *)
+(set! * 2)
+(display *)
+(set! * ())
+(display *)
