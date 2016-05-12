@@ -2,6 +2,7 @@
 #define TYPES_H_
 
 #include "memory.h"
+#include "debug.h"
 
 #include <functional>
 #include <string>
@@ -134,6 +135,20 @@ struct SpecialForm : public Value {
   }
 
   std::string show() const { return "<Special Form>"; };
+};
+
+struct Lambda : public Value {
+  Ref<List::Node> env;
+  Ref<List> params;
+  Ref<Value> body;
+
+  Lambda(Ref<List::Node> env, Ref<List> params, Ref<Value> body)
+    : env(env), params(params), body(body)
+  {}
+
+  Ref<Value> magic(Ref<List> args);
+
+  std::string show() const { return "<Lambda>"; };
 };
 
 #endif

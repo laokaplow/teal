@@ -1,6 +1,8 @@
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
-#define DEBUG(x) //cerr << x << "\n" ;
+#include <iostream>
+
+#define DEBUG(x) std::cerr << x << "\n" ;
 
 #endif
