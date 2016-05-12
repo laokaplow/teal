@@ -1,7 +1,9 @@
 #include "builtins.h"
 #include "utilities.h"
 #include "types.h"
+#include "debug.h"
 
+#include <cstdlib>
 #include <iostream>
 #include <string>
 using namespace std;
@@ -40,6 +42,101 @@ Ref<List::Node> default_env() {
 
     return make<Bool>(eq(a, b));
   }));
+
+  define(env, "read-lines", make<PrimitiveProcedure>([](Ref<List> args) {
+    string buf;
+    vector<Ref<Value>> lines;
+    while (cin) {
+      getline(cin, buf, '\n');
+      if (!cin && buf.size() == 0) continue;
+      vector<Ref<Value>> cs;
+      for (char &c: buf) {
+        cs.push_back(make<Character>(c));
+      }
+      lines.push_back(List::fromVec(cs));
+    }
+    auto res = List::fromVec(lines);
+    DEBUG(res->show());
+    return res;
+  }));
+
+  define(env, "exit", make<PrimitiveProcedure>([](Ref<List> args) {
+    int code = 0;
+    if (auto user_code = match<Integer>(list_after(0, args))) {
+      code = user_code->value;
+    }
+    exit(code);
+
+    return nil(); // control flow never reaches here
+  }));
+
+  define(env, "len", make<PrimitiveProcedure>([](Ref<List> args) {
+    if (auto xs = match<List>(list_after(0, args))) {
+      int count = 0;
+      while (auto head = match<List::Node>(xs)) {
+        count += 1;
+        xs = head->rest;
+      }
+      return make<Integer>(count);
+    } else {
+      error("Error: len called with non-list argument");
+      return make<Integer>(-42); // control will never reach here
+    }
+  }));
+
+  define(env, "first", make<PrimitiveProcedure>([](Ref<List> args) {
+    if (auto xs = match<List::Node>(list_after(0, args))) {
+      return xs->first;
+    } else {
+      error("list::first argument error: must be non-empty list");
+      Ref<Value> r = make<Integer>(-42);
+      return r; // control will never reach here
+    }
+  }));
+
+  define(env, "rest", make<PrimitiveProcedure>([](Ref<List> args) {
+    if (auto xs = match<List::Node>(list_after(0, args))) {
+      return xs->rest;
+    } else {
+      error("list::rest argument error: must be non-empty list");
+      Ref<List> r = nil();
+      return r; // control will never reach here
+    }
+  }));
+
+  define(env, "ascii", make<PrimitiveProcedure>([](Ref<List> args) {
+    if (auto code = match<Integer>(list_after(0, args))) {
+      return make<Character>(char(code->value));
+    }
+
+    error("ascii fn called on non-int arg");
+    return make<Character>('\0');
+  }));
+
+  define(env, "char", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto s = match<String>(list_after(0, args));
+    char c = '\0';
+
+    if (s && s->value.size()) c = s->value[0];
+
+    return make<Character>(c);
+  }));
+
+  define(env, "for-each", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto xs = match<List>(list_after(0, args));
+    auto fn = match<Value>(list_after(1, args));
+    vector<Ref<Value>> vals;
+
+    while (auto x = match<List::Node>(xs)){
+      auto arg = cons(x->first, nil());
+      vals.push_back(apply(fn, arg));
+      xs = x->rest;
+    }
+
+    return List::fromVec(vals);
+  }));
+
+
 
   return env;
 }

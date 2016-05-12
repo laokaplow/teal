@@ -37,8 +37,10 @@ struct Bool : public Value {
 struct Character : public Value {
   char value;
 
+  Character(char value) : value(value) {}
+
   std::string show() const {
-    return std::to_string(value);
+    return std::string() + value;
   }
 };
 

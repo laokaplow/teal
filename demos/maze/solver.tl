@@ -1,4 +1,4 @@
-(define lines (read_lines))
+(define lines (read-lines))
 (define height (len lines))
 (define width (len (first lines)))
 
@@ -15,6 +15,8 @@
             [(quote contents) c]
             [(quote dist) (- 0 1)]))))))
 
+(display (len graph))(exit)
+
 (define node-at
   (lambda (x y) (nth (nth graph x) y)))
 
@@ -26,7 +28,7 @@
           (for-each (range 0 width)
             (lambda (x)
               (display (get-member (node-at x y) (quote contents)))))
-          (display "\n"))))))
+          (display (char "\n")))))))
 
 (define try-connect
   (lambda (node x y)
@@ -98,6 +100,6 @@
 (define dist-to-exit (get-member end-node (quote dist)))
 (if (not (= dist-to-exit (- 0 1)))
   ; then
-  (display "no path possible\n")
+  (display "no path possible" (char "\n"))
   ; else
   (print-maze graph))
