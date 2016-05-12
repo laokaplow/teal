@@ -85,7 +85,8 @@ namespace alist {
   }
 
   Ref<List> lookup(Ref<Value> key, Ref<List> pairs) {
-    if (auto l = match<List::Node>(pairs)) {
+    // DEBUG("looking for " << key->show() << " in " << pairs->show());
+    while (auto l = match<List::Node>(pairs)) {
       if (auto kv = match<List::Node>(l->first)) {
         if (eq(key, kv->first)) {
           return kv;
@@ -93,6 +94,7 @@ namespace alist {
       } else {
         error("Malformed A-List, pair was not List::Node");
       }
+      pairs = l->rest;
     }
     // if not found
     return nil();
@@ -101,8 +103,9 @@ namespace alist {
 
 Ref<List> env_lookup(Ref<List::Node> env, Ref<Atom> name) {
   if (auto frame = match<List::Node>(env->first)) {
+    // DEBUG("looking for " << name->show() << " in " << frame->show());
     if (auto kv = match<List::Node>(alist::lookup(name, frame))) {
-        return kv;
+      return kv;
     }
   } else {
     if (auto more = match<List::Node>(env->rest)) {
@@ -119,6 +122,18 @@ void env_set(Ref<List::Node> env, Ref<Atom> name, Ref<Value> new_val) {
     kv->rest = cons(new_val, nil());
   }
 };
+
+void define(Ref<List::Node> env, Ref<Atom> name, Ref<Value> value) {
+  if (auto frame = match<List>(env->first)) {
+    env->first = cons(mk_pair(name, value), frame);
+  } else {
+    error("problem with environment - top frame is not a list");
+  }
+}
+
+void define(Ref<List::Node> env, string name, Ref<Value> value) {
+  return define(env, make<Atom>(name), value);
+}
 
 
 Ref<List> nil() {
@@ -201,6 +216,7 @@ bool try_compare(Ref<Value> a_, Ref<Value> b_) {
   return a && b && (a->value == b->value);
 }
 bool eq(Ref<Value> a, Ref<Value> b) {
+  // DEBUG("comparing equality of " << a->show() << " and " << b->show());
   return (a.get() == b.get()) // reference equality
    || list_compare(a, b)
    || try_compare<Atom>(a, b)

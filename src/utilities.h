@@ -17,6 +17,9 @@ Ref<List> eval_each(Ref<List> exprs, Ref<List::Node> env);
 Ref<List::Node> default_env();
 Ref<List> env_lookup(Ref<List::Node> env, Ref<Atom> name);
 void env_set(Ref<List::Node> env, Ref<Atom> name, Ref<Value> new_val);
+void define(Ref<List::Node> env, Ref<Atom> name, Ref<Value> value);
+void define(Ref<List::Node> env, std::string name, Ref<Value> value);
+
 
 ////
 /// List ops

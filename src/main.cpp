@@ -38,6 +38,9 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
+  // cout << default_env()->show() << "\n";
+  // return 0;
+
   try {
     interpret_file(argv[1]);
     return 0;

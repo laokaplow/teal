@@ -27,6 +27,8 @@ struct Atom : public Value {
 struct Bool : public Value {
   bool value;
 
+  Bool(bool value) : value(value) {}
+
   std::string show() const {
     return std::to_string(value);
   }
@@ -105,13 +107,17 @@ struct List::Node : public List{
 };
 
 struct PrimitiveProcedure : public Value {
-  std::function<Ref<Value>(Ref<Value>)> fn;
+  std::function<Ref<Value>(Ref<List>)> fn;
 
-  Ref<Value> apply(Ref<Value> args) {
+  PrimitiveProcedure(std::function<Ref<Value>(Ref<List>)> fn)
+    : fn(fn)
+  {}
+
+  Ref<Value> apply(Ref<List> args) {
     return fn(args);
   }
 
-  std::string show() const { return "primitive procedure"; };
+  std::string show() const { return "<PrimitiveProcedure>"; };
 };
 
 struct SpecialForm : public Value {
@@ -125,7 +131,7 @@ struct SpecialForm : public Value {
     return fn(unevaluated_args, env);
   }
 
-  std::string show() const { return "Special form."; };
+  std::string show() const { return "<Special Form>"; };
 };
 
 #endif
