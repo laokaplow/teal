@@ -69,7 +69,8 @@ struct String : public Value {
 
   String(std::string value) : value(value) {}
   std::string show() const {
-    return std::string("\"") + value + "\"";
+    return value;
+    // return std::string("\"") + value + "\"";
   }
 };
 

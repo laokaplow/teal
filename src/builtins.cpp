@@ -24,13 +24,16 @@ Ref<List::Node> default_env() {
       cout << xs->first->show();
       args = xs->rest;
     }
-
+    cout.flush();
     return nil();
   }));
 
   define(env, "empty?", make<PrimitiveProcedure>([](Ref<List> args) {
-    return make<Bool>(!!match<List::Empty>(list_after(0, args)));
+    if (auto vxs = match<Vector>(list_after(0, args))) {
+      return make<Bool>(0 == vxs->contents.size());
+    }
 
+    return make<Bool>(!!match<List::Empty>(list_after(0, args)));
   }));
 
   define(env, "atom?", make<PrimitiveProcedure>([](Ref<List> args) {
@@ -363,6 +366,23 @@ Ref<List::Node> default_env() {
     vxs->append(item);
 
     return nil();
+  }));
+
+  define(env, "vector-pop!", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto xs = list_after(0, args);
+    Ref<Value> retval = nil();
+    if (auto vxs = match<Vector>(xs)) {
+      if (vxs->contents.size()) {
+        retval = vxs->contents.back();
+        vxs->contents.pop_back();
+        return retval;
+      } {
+        error("Vector-pop! must be called with non-empty vector");
+      }
+    }
+    DEBUG(xs->show());
+    error("vector-pop! must be called with a vector");
+    return retval;
   }));
 
   return env;

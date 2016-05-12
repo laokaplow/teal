@@ -5,6 +5,10 @@
 (define start-node ())
 (define end-node ())
 
+(define nl (char "\n"))
+
+(display nl nl "loading maze..." nl)
+
 (define graph
   (for-each lines
     (lambda (line)
@@ -12,7 +16,7 @@
         (for-each line
           (lambda (c) ; make node from char
             (dict (
-              [(quote neighbors) ()]
+              [(quote neighbors) (vectorize ())]
               [(quote contents) c]
               [(quote pos) ()]
               [(quote es) (vectorize ())]
@@ -33,17 +37,7 @@
                 (display (get-member (node-at x y) (quote contents)))))
             (display (char "\n")))))))
 
-(define print-cc
-  (lambda ()
-    (for-each (range 0 height)
-      (lambda (y)
-        (begin
-          (for-each (range 0 width)
-            (lambda (x)
-              (display (len (get-member (node-at x y) (quote neighbors)))))
-          (display (char "\n"))))))))
 
-; vectorized version
 (define print-es
   (lambda ()
     (for-each (range 0 height)
@@ -52,7 +46,7 @@
           (for-each (range 0 width)
             (lambda (x)
               (display (len (get-member (node-at x y) (quote es)))))
-          (display (char "\n"))))))))
+          (display nl)))))))
 
 
 (define try-connect
@@ -64,7 +58,7 @@
         (if (not (= (char "#") (get-member other (quote contents))))
           (begin
             (define neighbors (get-member node (quote neighbors)))
-            (set-member! node (quote neighbors) (range 0 (+ 1 (len neighbors))))
+            (vector-append! neighbors other)
             ; connection count
             (define edges (get-member node (quote es)))
             (vector-append! edges (list x y))
@@ -78,7 +72,7 @@
 (define start-pos ())
 (define end-pos ())
 
-
+(display "connecting graph..." nl)
 ; hook up neighboring nodes
 (for-each (range 0 height)
   (lambda (y)
@@ -90,8 +84,8 @@
             (set-member! here (quote pos) (list x y))
             (define contents (get-member here (quote contents)))
             (cond
-              [(= contents (char "s")) (set! start-pos (list x y))]
-              [(= contents (char "e")) (set! end-pos (list x y))])
+              [(= contents (char "s")) (set! start-node here)]
+              [(= contents (char "e")) (set! end-node here)])
             (try-connect here x (+ y 1))
             (try-connect here x (- y 1))
             (try-connect here (+ x 1) y)
@@ -99,57 +93,83 @@
             () ; not intending to return a meaningfull value
             ))))))
 
+(display nl nl)
 (print-maze)
-(print-cc)
-(display (char "\n"))
-(print-es)
-(display (char "\n"))
+(display nl)
+(print-es) ; number of open edges per node
+(display nl nl)
 
-(display (get-member start-node (quote pos)) (char "\n\n"))
-(display (get-member end-node (quote pos)) (char "\n\n"))
-(exit)
+
+(display (quote start) start-node nl)
+(display (quote end) end-node nl nl)
+;(exit)
+
+;(display (quote start) (get-member start-node (quote pos)) (char "\n\n"))
+;(display (quote end) (get-member end-node (quote pos)) (char "\n\n"))
+;(exit)
 
 ; do bfs
+(display "begin pathfinding" nl)
 (begin
   (set-member! start-node (quote dist) 0)
-  (define q (list start-node))
-  (define next ())
+  (define q (vectorize (list start-node)))
+  (define next (vectorize ()))
   (while (not (empty? q))
-    (while (not (empty? q))
-      (begin
-        (define here (first q))
-        (set! q (rest q))
-        (if (= (get-member here (quote contents)) 'e')
-          ; then
-          (set! q ()) ; break
-          ; else
-          (for-each (get-member here (quote neighbors))
-            (lambda (there)
-              (cond
-                [(= (get-member there (quote dist)) (- 0 1))
-                  (begin
-                    (define cur-dist (get-member here (quote dist)))
-                    (set-member! there (quote dist) (+ cur-dist 1))
-                    (set! next (cons there next)))]))))
+    (begin
+      (while (not (empty? q))
+        (begin
+          (display (len q))
+          (define here (vector-pop! q))
+          (if (= (get-member here (quote contents)) (char 'e')) ; reached end
+            ; then
+            (begin ; break
+              (set! q    (vectorize ()))
+              (set! next (vectorize ()))
+              )
+            ; else
+            (for-each (get-member here (quote neighbors))
+              (lambda (there)
+                (cond
+                  ; don't enqueue nodes we have already seen
+                  [(= (get-member there (quote dist)) (- 0 1))
+                    (begin
+                      (define cur-dist (get-member here (quote dist)))
+                      (set-member! there (quote dist) (+ cur-dist 1))
+                      (vector-append! next there))]))))))
         (set! q next)
-        (set! next ())))))
+        (set! next (vectorize ())))))
 
+(display nl "path finding complete." nl nl)
+;(exit)
+
+(define breadcrumbs "\x1B[92m*\x1B[0m")
+
+(display "marking path" nl)
 ; mark return path
 (define here end-node)
-(while (not (= (get-member here (quote contents))))
+(while (not (= 0 (get-member here (quote dist))))
   (begin
     (define c (get-member here (quote contents)))
-    (define dist (get-member here (quote dist)))
+    (define cur-dist (get-member here (quote dist)))
+    (display cur-dist nl)
     (for-each (get-member here (quote neighbors))
       (lambda (neighbor)
-        (if (= (- dist 1) (get-member neighbor (quote dist)))
-          (set! here neighbor)
+        (if (= (- cur-dist 1) (get-member neighbor (quote dist)))
+          (begin
+            (display (get-member neighbor (quote pos) nl))
+            (set-member! neighbor (quote contents) breadcrumbs)
+            (set! here neighbor))
+          ; else, not closer
           nil)))))
 
+
+(display "printing results:" nl nl)
 ; print results
 (define dist-to-exit (get-member end-node (quote dist)))
-(if (not (= dist-to-exit (- 0 1)))
+(if (= dist-to-exit (- 0 1))
   ; then
-  (display "no path possible" (char "\n"))
+  (display "no path possible" nl)
   ; else
-  (print-maze graph))
+  (print-maze))
+
+(display "done" nl nl)

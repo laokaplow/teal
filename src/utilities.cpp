@@ -249,7 +249,7 @@ bool vec_compare(Ref<Value> a, Ref<Value> b) {
     return false;
   }
 
-  for (int i = 0; i < xs->contents.size(); i++) {
+  for (int i = 0; i < (int)xs->contents.size(); i++) {
     if (!eq(xs->contents[i], ys->contents[i])) {
       return false;
     }
