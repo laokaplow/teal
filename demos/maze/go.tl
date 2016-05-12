@@ -9,6 +9,11 @@
 
 (display nl nl "loading maze..." nl)
 
+(define :neighbors (quote neighbors))
+(define :contents  (quote contents))
+(define :pos       (quote pos))
+(define :dist      (quote dist))
+
 (define graph
   (for-each lines
     (lambda (line)
@@ -96,7 +101,7 @@
 (display nl nl)
 (print-maze)
 (display nl)
-(print-es) ; number of open edges per node
+;(print-es) ; number of open edges per node
 (display nl nl)
 
 
@@ -118,7 +123,7 @@
     (begin
       (while (not (empty? q))
         (begin
-          (display (len q))
+          ;(display (len q))
           (define here (vector-pop! q))
           (if (= (get-member here (quote contents)) (char 'e')) ; reached end
             ; then
@@ -144,32 +149,39 @@
 
 (define breadcrumbs "\x1B[92m*\x1B[0m")
 
+; shortcircuit if no path exists
+(define dist-to-exit (get-member end-node (quote dist)))
+(if (= dist-to-exit (- 0 1))
+  (begin
+    (display "No path exists from start to end" nl)
+    (exit))
+  nil)
+
 (display "marking path" nl)
 ; mark return path
-(define here end-node)
 (while (not (= 0 (get-member here (quote dist))))
   (begin
     (define c (get-member here (quote contents)))
     (define cur-dist (get-member here (quote dist)))
-    (display cur-dist nl)
+    (define cur-pos (get-member here (quote pos)))
+    ;(display cur-dist cur-pos nl)
+    (define options 0)
     (for-each (get-member here (quote neighbors))
       (lambda (neighbor)
-        (if (= (- cur-dist 1) (get-member neighbor (quote dist)))
-          (begin
-            (display (get-member neighbor (quote pos) nl))
-            (set-member! neighbor (quote contents) breadcrumbs)
-            (set! here neighbor))
-          ; else, not closer
-          nil)))))
+        (begin
+          (define is-closer? (= (- cur-dist 1) (get-member neighbor (quote dist))))
+          (if (and (= options 0) is-closer?)
+            (begin
+              (set! options 1)
+              ;(display (get-member neighbor (quote pos) nl))
+              (set! here neighbor)
+              (if (not (= (char 's') (get-member neighbor (quote contents))))
+                (set-member! neighbor (quote contents) breadcrumbs)
+                ; else
+                nil)
+            ; else, not closer
+            nil)))))))
 
 
-(display "printing results:" nl nl)
-; print results
-(define dist-to-exit (get-member end-node (quote dist)))
-(if (= dist-to-exit (- 0 1))
-  ; then
-  (display "no path possible" nl)
-  ; else
-  (print-maze))
-
-(display "done" nl nl)
+(display nl "printing path:" nl nl)
+(print-maze)
