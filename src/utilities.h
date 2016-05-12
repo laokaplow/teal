@@ -19,13 +19,13 @@ Ref<List> env_lookup(Ref<List::Node> env, Ref<Atom> name);
 void env_set(Ref<List::Node> env, Ref<Atom> name, Ref<Value> new_val);
 void define(Ref<List::Node> env, Ref<Atom> name, Ref<Value> value);
 void define(Ref<List::Node> env, std::string name, Ref<Value> value);
-
+Ref<List::Node> env_add_frame(Ref<List::Node> env, Ref<List> frame);
 
 ////
 /// List ops
 //
 Ref<List> nil();
-Ref<List> cons(Ref<Value> a, Ref<List> b = nil());
+Ref<List::Node> cons(Ref<Value> a, Ref<List> b = nil());
 Ref<List> mk_pair(Ref<Value> a, Ref<Value> b);
 Ref<List> zip(Ref<List> as, Ref<List> bs);
 Ref<Value> list_after(int index, Ref<List> l);

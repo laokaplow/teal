@@ -14,37 +14,50 @@ void error(string msg, Ref<Value> obj) {
 Ref<Value> apply(Ref<Value> proc, Ref<List> args) {
   if (auto p = match<PrimitiveProcedure>(proc)) {
     return p->apply(args);
+  } else if (auto l = match<Lambda>(proc)) {
+    return l->magic(args);
   } else if (auto p = match<List::Node>(proc)) {
+    DEBUG("applying old school lambda");
+    DEBUG(proc->show());
+    return nil();
+
+    // lambda
     auto lexical_env = match<List::Node>(list_after(0, p));
     auto params = match<List>(list_after(1, p));
-    auto body = match<List>(list_after(2, p));
+    auto body = match<Value>(list_after(2, p));
 
     if (!(lexical_env && params && body)) {
       error("malformed functor");
     }
 
     // pair args
+    auto arg_pack = zip(params, args);
     // extend-environment
+    auto env = cons(arg_pack, lexical_env);
+    DEBUG("special env = " << env->show());
+    DEBUG("proc body = " << body->show())
+
     // eval in new env
+    return eval(body, env);
 
   } else {
-    error("Unable to apply args - wrong type.");
+    error("Unable to apply args - uknown proc type.");
   }
 
   return nil();
 }
 
 Ref<Value> eval(Ref<Value> exp, Ref<List::Node> env) {
-  DEBUG("Evaluating: " << exp->show());
+  // DEBUG("Evaluating: " << exp->show());
   // terminal values
   if (exp->is_self_evaluating()) {
-    DEBUG("is self evaluating");
+    // DEBUG("is self evaluating");
     return exp;
   }
 
   // variable
   if (auto name = match<Atom>(exp)) {
-      DEBUG("is atom");
+      // DEBUG("is atom");
       auto value = list_after(1, env_lookup(env, name));
       return value;
   }
@@ -55,13 +68,19 @@ Ref<Value> eval(Ref<Value> exp, Ref<List::Node> env) {
     auto rest = sexpr->rest;
 
     if (auto form = match<SpecialForm>(head)) {
-        DEBUG("is special form");
+        // DEBUG("is special form");
       // may not evaluate all args, and/or may modify the env
       return form->eval(rest, env);
     }
 
-    DEBUG("is function");
-    return apply(head, eval_each(rest, env));
+    // DEBUG("is function");
+    // DEBUG("head = " << head->show());
+    // DEBUG("qargs = " << rest->show());
+    // DEBUG("processing args into...");
+    auto args = eval_each(rest, env);
+    // DEBUG("args = " << args->show());
+    // DEBUG("preparing to apply args to head..")
+    return apply(head, args);
   }
 
   error("Unknown expression type - EVAL");
@@ -86,15 +105,15 @@ namespace alist {
 
   Ref<List> lookup(Ref<Value> key, Ref<List> pairs) {
     // DEBUG("looking for " << key->show() << " in " << pairs->show());
-    while (auto l = match<List::Node>(pairs)) {
-      if (auto kv = match<List::Node>(l->first)) {
+    while (auto head = match<List::Node>(pairs)) {
+      if (auto kv = match<List::Node>(head->first)) {
         if (eq(key, kv->first)) {
           return kv;
         }
       } else {
         error("Malformed A-List, pair was not List::Node");
       }
-      pairs = l->rest;
+      pairs = head->rest;
     }
     // if not found
     return nil();
@@ -102,15 +121,19 @@ namespace alist {
 }
 
 Ref<List> env_lookup(Ref<List::Node> env, Ref<Atom> name) {
-  if (auto frame = match<List::Node>(env->first)) {
-    // DEBUG("looking for " << name->show() << " in " << frame->show());
-    if (auto kv = match<List::Node>(alist::lookup(name, frame))) {
-      return kv;
+  Ref<List> remaining = env;
+  while (auto frame = match<List::Node>(remaining)) {
+    DEBUG("looking for " << name->show() << " in " << frame->show());
+    if (auto pair_list = match<List>(frame->first)) {
+      if (auto kv = match<List::Node>(alist::lookup(name, pair_list))) {
+        return kv;
+      } else {
+        // should be empty list to signify not found
+      }
+    } else {
+      error(" bad frame in env, should be list");
     }
-  } else {
-    if (auto more = match<List::Node>(env->rest)) {
-      return env_lookup(more, name);
-    }
+    remaining = frame->rest;
   }
   // can't find value in empty env
   error(string("Lookup error, atom `") + name->show() +"` does not name a value in the env.");
@@ -120,6 +143,8 @@ Ref<List> env_lookup(Ref<List::Node> env, Ref<Atom> name) {
 void env_set(Ref<List::Node> env, Ref<Atom> name, Ref<Value> new_val) {
   if (auto kv = match<List::Node>(env_lookup(env, name))) {
     kv->rest = cons(new_val, nil());
+  } else {
+    // not found in env, return empty list
   }
 };
 
@@ -135,12 +160,16 @@ void define(Ref<List::Node> env, string name, Ref<Value> value) {
   return define(env, make<Atom>(name), value);
 }
 
+Ref<List::Node> env_add_frame(Ref<List::Node> env, Ref<List> frame) {
+  return cons(frame, env);
+}
+
 
 Ref<List> nil() {
   return make<List::Empty>();
 }
 
-Ref<List> cons(Ref<Value> a, Ref<List> b) {
+Ref<List::Node> cons(Ref<Value> a, Ref<List> b) {
   return  make<List::Node>(a, b);
 }
 
