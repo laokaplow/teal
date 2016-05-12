@@ -150,4 +150,21 @@ struct Lambda : public Value {
   std::string show() const { return "<Lambda>"; };
 };
 
+struct Vector : public Value {
+  std::vector<Ref<Value>> contents;
+
+  Vector(Ref<List> items) {
+    while (auto head = match<List::Node>(items)) {
+      contents.push_back(head->first);
+      items = head->rest;
+    }
+  }
+
+  void append(Ref<Value> item) {
+    contents.push_back(item);
+  }
+
+  std::string show() const { return "<Vector>"; };
+};
+
 #endif

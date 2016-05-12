@@ -72,9 +72,13 @@ Ref<List::Node> default_env() {
   }));
 
   define(env, "len", make<PrimitiveProcedure>([](Ref<List> args) {
+    if (auto vxs = match<Vector>(list_after(0, args))) {
+      return make<Integer>(vxs->contents.size());
+    }
+
     auto num = len(match<List>(list_after(0, args)));
     if (num == -1) {
-      error("invalid argument to len - must be list or string");
+      error("invalid argument to len - must be list or string or vector");
     }
     return make<Integer>(num);
   }));
@@ -126,6 +130,17 @@ Ref<List::Node> default_env() {
     auto proc = match<Lambda>(list_after(1, args));
     vector<Ref<Value>> vals;
 
+    if (auto vxs = match<Vector>(list_after(0, args))) {
+      if (proc) {
+        for (Ref<Value> item: vxs->contents) {
+          auto argpack = cons(item, nil());
+          auto res = proc->apply(argpack);
+          vals.push_back(res);
+        }
+        return List::fromVec(vals);
+      }
+    }
+
     if (!(xs && proc)) {
       error("malformed for-each block");
     }
@@ -136,7 +151,6 @@ Ref<List::Node> default_env() {
       vals.push_back(val);
       xs = x->rest;
     }
-
 
     return List::fromVec(vals);
   }));
@@ -203,6 +217,19 @@ Ref<List::Node> default_env() {
   define(env, "nth", make<PrimitiveProcedure>([](Ref<List> args) {
     auto xs = match<List>(list_after(0, args));
     auto i = match<Integer>(list_after(1, args));
+
+    if (!i) {
+      error("nth is only defined for lists and vectors");
+    }
+
+    if (auto vxs = match<Vector>(list_after(0, args))) {
+      int d = i->value;
+      if ((d < 0) || (d >= (int)vxs->contents.size())) {
+        error("index out of range for vector i=" + i->show());
+      }
+
+      return vxs->contents[i->value];
+    }
 
     if (!(xs && i)) {
       error("nth is only defined for integer indexes on lists");
@@ -311,6 +338,31 @@ Ref<List::Node> default_env() {
     }
 
     return cons(car, cons(cdr, nil()));
+  }));
+
+  define(env, "vectorize", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto ls = list_after(0, args);
+    auto items = match<List>(ls);
+
+    if (!items) {
+      DEBUG(ls->show());
+      error("error - can only vectorize lists");
+    }
+
+    return make<Vector>(items);
+  }));
+
+  define(env, "vector-append!", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto vxs = match<Vector>(list_after(0, args));
+    auto item = match<Value>(list_after(1, args));
+
+    if (!(vxs && item)) {
+      error("malformed call to vector-append!");
+    }
+
+    vxs->append(item);
+
+    return nil();
   }));
 
   return env;

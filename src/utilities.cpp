@@ -237,7 +237,26 @@ Ref<List> reverse(Ref<List> l, Ref<List> reversed) {
   return nil();
 }
 
+bool vec_compare(Ref<Value> a, Ref<Value> b) {
+  auto xs = match<Vector>(a);
+  auto ys = match<Vector>(b);
 
+  if (!(xs && ys)) {
+    return false;
+  }
+
+  if (xs->contents.size() != ys->contents.size()) {
+    return false;
+  }
+
+  for (int i = 0; i < xs->contents.size(); i++) {
+    if (!eq(xs->contents[i], ys->contents[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 template <typename T>
 bool try_compare(Ref<Value> a_, Ref<Value> b_) {
@@ -251,6 +270,7 @@ bool eq(Ref<Value> a, Ref<Value> b) {
   // DEBUG("comparing equality of " << a->show() << " and " << b->show());
   return (a.get() == b.get()) // reference equality
    || list_compare(a, b)
+   || vec_compare(a, b)
    || try_compare<Atom>(a, b)
    || try_compare<Bool>(a, b)
    || try_compare<Character>(a, b)
