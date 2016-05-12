@@ -1,7 +1,7 @@
 (define lines (read-lines))
 (define height (len lines))
 (define width (len (first lines)))
-
+;(display lines (list width height))(exit)
 (define start-node ())
 (define end-node ())
 
@@ -10,15 +10,26 @@
     (lambda (line)
       (for-each line
         (lambda (c) ; make node from char
-          (dict
+          (dict (
             [(quote neighbors) ()]
             [(quote contents) c]
-            [(quote dist) (- 0 1)]))))))
+            [(quote dist) (- 0 1)])))))))
 
-(display (len graph))(exit)
+;(display graph)(exit)
 
 (define node-at
-  (lambda (x y) (nth (nth graph x) y)))
+  (lambda (x y) (nth (nth graph y) x)))
+
+;(display (node-at 0 0) (char "\n"))
+;(display (node-at 1 0) (char "\n"))
+;(display (node-at 2 0) (char "\n"))
+;(display (node-at 0 1) (char "\n"))
+;(display (node-at 1 1) (char "\n"))
+;(display (node-at 2 1) (char "\n"))
+;(display (node-at 0 2) (char "\n"))
+;(display (node-at 1 2) (char "\n"))
+;(display (node-at 2 2) (char "\n"))
+;(exit)
 
 (define print-maze
   (lambda ()
@@ -29,6 +40,8 @@
             (lambda (x)
               (display (get-member (node-at x y) (quote contents)))))
           (display (char "\n")))))))
+
+;(print-maze)
 
 (define try-connect
   (lambda (node x y)

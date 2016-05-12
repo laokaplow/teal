@@ -38,6 +38,7 @@ namespace alist {
 }
 
 bool eq(Ref<Value> a, Ref<Value> b);
+int len(Ref<Value>);
 
 
 

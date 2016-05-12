@@ -105,7 +105,6 @@ struct List::Node : public List{
 
     return buffer;
   };
-
   virtual bool is_self_evaluating() const override { return false; }
 };
 

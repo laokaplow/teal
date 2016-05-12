@@ -26,7 +26,7 @@ Ref<List::Node> default_env() {
 
     return nil();
   }));
-  
+
   define(env, "empty?", make<PrimitiveProcedure>([](Ref<List> args) {
     return make<Bool>(!!match<List::Empty>(list_after(0, args)));
 
@@ -56,7 +56,7 @@ Ref<List::Node> default_env() {
       lines.push_back(List::fromVec(cs));
     }
     auto res = List::fromVec(lines);
-    DEBUG(res->show());
+    // DEBUG(res->show());
     return res;
   }));
 
@@ -71,17 +71,11 @@ Ref<List::Node> default_env() {
   }));
 
   define(env, "len", make<PrimitiveProcedure>([](Ref<List> args) {
-    if (auto xs = match<List>(list_after(0, args))) {
-      int count = 0;
-      while (auto head = match<List::Node>(xs)) {
-        count += 1;
-        xs = head->rest;
-      }
-      return make<Integer>(count);
-    } else {
-      error("Error: len called with non-list argument");
-      return make<Integer>(-42); // control will never reach here
+    auto num = len(match<List>(list_after(0, args)));
+    if (num == -1) {
+      error("invalid argument to len - must be list or string");
     }
+    return make<Integer>(num);
   }));
 
   define(env, "first", make<PrimitiveProcedure>([](Ref<List> args) {
@@ -128,14 +122,20 @@ Ref<List::Node> default_env() {
 
   define(env, "for-each", make<PrimitiveProcedure>([](Ref<List> args) {
     auto xs = match<List>(list_after(0, args));
-    auto proc = match<Value>(list_after(1, args));
+    auto proc = match<Lambda>(list_after(1, args));
     vector<Ref<Value>> vals;
+
+    if (!(xs && proc)) {
+      error("malformed for-each block");
+    }
 
     while (auto x = match<List::Node>(xs)){
       auto arg = cons(x->first, nil());
-      vals.push_back(eval(cons(proc, arg), cons(nil())));
+      auto val = proc->apply(arg);
+      vals.push_back(val);
       xs = x->rest;
     }
+
 
     return List::fromVec(vals);
   }));
@@ -155,21 +155,69 @@ Ref<List::Node> default_env() {
     return args;
   }));
 
-  // define(env, "dict", make<PrimitiveProcedure>([](Ref<List> args) {
-  //   auto xs = match<List>(list_after(0, args));
-  //   auto fn = match<Value>(list_after(1, args));
-  //   vector<Ref<Value>> vals;
-  //
-  //   while (auto x = match<List::Node>(xs)){
-  //     auto arg = cons(x->first, nil());
-  //     vals.push_back(apply(fn, arg));
-  //     xs = x->rest;
-  //   }
-  //
-  //   return List::fromVec(vals);
-  // }));
+  define(env, "-", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto a = match<Integer>(list_after(0, args));
+    auto b = match<Integer>(list_after(1, args));
 
+    if (!(a && b)) {
+      error("subtraction `-` is only defined on ints.");
+    }
 
+    return make<Integer>(a->value - b->value);
+  }));
+
+  define(env, "nth", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto xs = match<List>(list_after(0, args));
+    auto i = match<Integer>(list_after(1, args));
+
+    if (!(xs && i)) {
+      error("nth is only defined for integer indexes on lists");
+    }
+
+    if (-1 == len(xs)) {
+      error("index out of range: " + to_string(i->value) + " in " + xs->show());
+    }
+
+    return list_after(i->value, xs);
+  }));
+
+  define(env, "range", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto low  = match<Integer>(list_after(0, args));
+    auto high = match<Integer>(list_after(1, args));
+
+    if (!(low && high) || (low->value > high->value)) {
+      error("range takes two ints, the first may not be larger then the second");
+    }
+
+    vector<Ref<Value>> xs;
+    for (int i = low->value; i < high->value; i++) {
+      xs.push_back(make<Integer>(i));
+    }
+
+    return List::fromVec(xs);
+  }));
+
+  define(env, "begin", make<PrimitiveProcedure>([](Ref<List> args) {
+    // args are already evaluated in order
+    // return last value
+    return list_after(len(args)-1, args);
+  }));
+
+  define(env, "get-member", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto xs = match<List::Node>(list_after(0, args));
+    auto name = match<Atom>(list_after(1, args));
+
+    if (!(xs && name)) {
+      error("get-member argument error");
+    }
+
+    if (auto kv = match<List::Node>(alist::lookup(name, xs))) {
+      return list_after(1, kv);
+    } else {
+      error("key `" + name->value + "` not found int " + xs->show());
+      return list_after(0, args); // control will never get here
+    }
+  }));
 
   return env;
 }

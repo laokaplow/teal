@@ -42,7 +42,8 @@ Ref<Value> apply(Ref<Value> proc, Ref<List> args) {
     return eval(body, env);
 
   } else {
-    error("Unable to apply args - uknown proc type.");
+
+    error("Unable to apply args - uknown proc type." + proc->show());
   }
 
   return nil();
@@ -245,6 +246,7 @@ bool try_compare(Ref<Value> a_, Ref<Value> b_) {
 
   return a && b && (a->value == b->value);
 }
+
 bool eq(Ref<Value> a, Ref<Value> b) {
   // DEBUG("comparing equality of " << a->show() << " and " << b->show());
   return (a.get() == b.get()) // reference equality
@@ -256,4 +258,20 @@ bool eq(Ref<Value> a, Ref<Value> b) {
    || try_compare<Float>(a, b)
    || try_compare<String>(a, b)
   ;
+}
+
+int len(Ref<Value> arg) {
+  if (auto xs = match<List>(arg)) {
+    int count = 0;
+    while (auto head = match<List::Node>(xs)) {
+      count += 1;
+      xs = head->rest;
+    }
+    return count;
+  } if (auto str = match<String>(arg)) {
+    return str->value.size();
+  } else {
+    // error("Error: len called with non-list argument");
+    return -1; // control will never reach here
+  }
 }

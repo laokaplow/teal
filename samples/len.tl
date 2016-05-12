@@ -1,1 +1,2 @@
-(display (len (quote a b c d)))(exit)
+(display (len (quote (a b c d))))
+(exit)

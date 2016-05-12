@@ -2,10 +2,21 @@
 #include "utilities.h"
 #include "debug.h"
 
+#include <vector>
+
+using namespace std;
+
 void attach_special_forms(Ref<List::Node> env) {
 
   define(env, "quote", make<SpecialForm>([](Ref<List> args, Ref<List::Node> env) {
-    return args;
+    if (auto xs = match<List::Node>(args)) {
+      if (auto more = match<List::Empty>(xs->rest)) {
+        return xs->first;
+      }
+    }
+    error("quote takes exactly one argument");
+    Ref<Value> fake_val;
+    return fake_val; // control never reaches here
   }));
 
   define(env, "env", make<SpecialForm>([](Ref<List> args, Ref<List::Node> env) {
@@ -71,5 +82,33 @@ void attach_special_forms(Ref<List::Node> env) {
     // DEBUG("params = " << params->show());
     // DEBUG("body = " << body->show());
     // return proc;
+
   }));
+
+  define(env, "dict", make<SpecialForm>([](Ref<List> args, Ref<List::Node> env) {
+    auto kv_pairs = match<List>(list_after(0, args));
+    // DEBUG(kv_pairs->show());
+    vector<Ref<Value>> ps;
+    while (auto head = match<List::Node>(kv_pairs)) {
+      auto kv = match<List::Node>(head->first);
+      // DEBUG(kv->show())
+      // eval k, v seperately
+      auto k = match<Atom>(eval(list_after(0, kv), env));
+      auto v = match<Value>(eval(list_after(1, kv), env));
+
+      if (!(kv && k && v)) {
+        cout << k << " " << v;
+        error("malformed dictionary entry: " + head->first->show());
+      }
+      auto entry = mk_pair(k, v);
+      // DEBUG(entry->show());
+      ps.push_back(entry);
+      kv_pairs = head->rest;
+    }
+
+    auto computed = List::fromVec(ps);
+    // DEBUG(computed->show())
+    return computed;
+  }));
+
 }
