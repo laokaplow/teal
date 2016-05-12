@@ -1,9 +1,5 @@
-(lambda (x) 4)
-(exit)
+(define x 4)
 (define fn
-  ;(lambda (x, puts) (display x)))
-  (lambda (x, puts) 7))
+  (lambda (x) (display x)))
 
-(display (lambda () ()))
-(exit)
-(fn 8 display)
+(fn 5)

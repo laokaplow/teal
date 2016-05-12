@@ -15,10 +15,11 @@ Ref<Value> apply(Ref<Value> proc, Ref<List> args) {
   if (auto p = match<PrimitiveProcedure>(proc)) {
     return p->apply(args);
   } else if (auto l = match<Lambda>(proc)) {
-    return l->magic(args);
+    return l->apply(args);
   } else if (auto p = match<List::Node>(proc)) {
     DEBUG("applying old school lambda");
     DEBUG(proc->show());
+    error("this functionality has been temporarily disabled");
     return nil();
 
     // lambda
@@ -123,7 +124,7 @@ namespace alist {
 Ref<List> env_lookup(Ref<List::Node> env, Ref<Atom> name) {
   Ref<List> remaining = env;
   while (auto frame = match<List::Node>(remaining)) {
-    DEBUG("looking for " << name->show() << " in " << frame->show());
+    // DEBUG("looking for " << name->show() << " in " << frame->show());
     if (auto pair_list = match<List>(frame->first)) {
       if (auto kv = match<List::Node>(alist::lookup(name, pair_list))) {
         return kv;

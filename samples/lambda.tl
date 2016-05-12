@@ -1,6 +1,8 @@
-(define f1 (list 1 2 3))
-(define f2 (lambda (x) x))
+;(define f1 (list 1 2 3))
+(define f2 (lambda (x) pi))
 
-(f2 7)
+(display 7)
+(display f2)
+(display (f2 7))
 ;(display f1)
 ;(display (list 1 2 3))

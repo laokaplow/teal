@@ -146,7 +146,7 @@ struct Lambda : public Value {
     : env(env), params(params), body(body)
   {}
 
-  Ref<Value> magic(Ref<List> args);
+  Ref<Value> apply(Ref<List> args);
 
   std::string show() const { return "<Lambda>"; };
 };
