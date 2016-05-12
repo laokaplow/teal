@@ -31,7 +31,7 @@ struct Bool : public Value {
   Bool(bool value) : value(value) {}
 
   std::string show() const {
-    return std::to_string(value);
+    return value? "#T" : "#F";
   }
 };
 

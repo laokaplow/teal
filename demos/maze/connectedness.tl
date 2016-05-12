@@ -15,7 +15,6 @@
             [(quote contents) c]
             [(quote pos) ()]
             [(quote cc) ()]
-            [(quote a2) (())]
             [(quote dist) (- 0 1)])))))))
 
 ;(display graph)(exit)
@@ -44,7 +43,6 @@
           (display (char "\n"))))))))
 
 
-
 (define try-connect
   (lambda (node x y)
     (if (and (<= 0 x) (< x width) (<= 0 y) (< y height))
@@ -55,10 +53,13 @@
           (begin
             (define neighbors (get-member node (quote neighbors)))
             (set-member! node (quote neighbors) (range 0 (+ 1 (len neighbors))))
-            ; connections
-            (append-member! node (quote a2) (list x y)))
-          ())))))
-
+            ; connection count
+            (define cc (get-member node (quote cc)))
+            (set-member! node (quote cc) (range 0 (+ 1 (len cc)))
+            ))
+          ()))
+      ; else
+      ())))
 
 ;(print-maze)
 

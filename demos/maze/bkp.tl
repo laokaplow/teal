@@ -13,15 +13,23 @@
           (dict (
             [(quote neighbors) ()]
             [(quote contents) c]
-            [(quote pos) ()]
-            [(quote cc) ()]
-            [(quote a2) (())]
             [(quote dist) (- 0 1)])))))))
 
 ;(display graph)(exit)
 
 (define node-at
   (lambda (x y) (nth (nth graph y) x)))
+
+;(display (node-at 0 0) (char "\n"))
+;(display (node-at 1 0) (char "\n"))
+;(display (node-at 2 0) (char "\n"))
+;(display (node-at 0 1) (char "\n"))
+;(display (node-at 1 1) (char "\n"))
+;(display (node-at 2 1) (char "\n"))
+;(display (node-at 0 2) (char "\n"))
+;(display (node-at 1 2) (char "\n"))
+;(display (node-at 2 2) (char "\n"))
+;(exit)
 
 (define print-maze
   (lambda ()
@@ -33,17 +41,7 @@
               (display (get-member (node-at x y) (quote contents)))))
           (display (char "\n")))))))
 
-(define print-cc
-  (lambda ()
-    (for-each (range 0 height)
-      (lambda (y)
-        (begin
-          (for-each (range 0 width)
-            (lambda (x)
-              (display (len (get-member (node-at x y) (quote neighbors)))))
-          (display (char "\n"))))))))
-
-
+;(print-maze)
 
 (define try-connect
   (lambda (node x y)
@@ -51,20 +49,16 @@
       ; then
       (begin
         (define other (node-at x y))
-        (if (not (= (char "#") (get-member other (quote contents))))
+        (if (not (= "#" (get-member other (quote contents))))
           (begin
             (define neighbors (get-member node (quote neighbors)))
-            (set-member! node (quote neighbors) (range 0 (+ 1 (len neighbors))))
-            ; connections
-            (append-member! node (quote a2) (list x y)))
-          ())))))
+            (set-member! node (quote neighbors) (cons other neighbors)))
+          ()))
+      ())))
 
+(print-maze)
 
-;(print-maze)
-
-(define start-pos ())
-(define end-pos ())
-
+(define cc '*')
 
 ; hook up neighboring nodes
 (for-each (range 0 height)
@@ -74,54 +68,27 @@
         (lambda (x)
           (begin
             (define here (node-at x y))
-            (set-member! here (quote pos) (list x y))
-            (define contents (get-member here (quote contents)))
+            ;(define contents (get-member here (quote contents)))
+            (set! cc (get-member here (quote contents)))
+            (display cc)
             (cond
-              [(= contents (char "s")) (set! start-pos (list x y))]
-              [(= contents (char "e")) (set! end-pos (list x y))])
-            (try-connect here x (+ y 1))
-            (try-connect here x (- y 1))
-            (try-connect here (+ x 1) y)
-            (try-connect here (- x 1) y)
+              [(= cc "s")
+                (begin
+                  (set! start-node here)
+                  (display (list (quote start) x y)))]
+              [(= cc "s")
+                (begin
+                  (set! end-node here)
+                  (display (list (quote end) x y)))])
+              ;[(= contents 's') (set! start-node here)]
+              ;[(= contents 'e') (set! end-node here)])
+            ;(try-connect here x (+ y 1))
+            ;(try-connect here x (- y 1))
+            ;(try-connect here (+ x 1) y)
+            ;(try-connect here (- x 1) y)
             ))))))
 
-(print-maze)
-(print-cc)
-(exit)
-
-;(define hookup (lambda (from to)
-;  (begin
-;    (if (not (= (char "#") (get-member to (quote contents))))
-;      (begin
-;        (define old_list (get-member from (quote neighbors)))
-;        (define new_list (cons to oldlist))
-;        (set-member! from (quote neighbors) new_list))
-;      ; else, do nothing, it is a wall
-;      ()))))
-;
-;; hook up neighboring nodes
-;(define last ())
-;(for-each (range 0 height) (lambda (y)
-;  (begin
-;    (set! last ())
-;    (for-each (range 0 width) (lambda (x)
-;      (begin
-;        (define here (node-at x y))
-;        (set-member! here (quote pos) (list x y))
-;        (define contents (get-member here (quote contents)))
-;        (cond
-;          [(= contents (char "s")) (set! start-pos (list x y))]
-;          [(= contents (char "e")) (set! end-pos (list x y))])
-;        (if (not (empty? last)
-;          (begin
-;            (hookup here last)
-;            (hookup last here))
-;          ()))
-;        (set! last here)))))))
-;
-(display (get-member start-node (quote pos)) (char "\n\n"))
-(display (get-member end-node (quote pos)) (char "\n\n"))
-(exit)
+(display (list start-node end-node))(exit)
 
 ; do bfs
 (begin

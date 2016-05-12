@@ -54,7 +54,9 @@ void attach_special_forms(Ref<List::Node> env) {
   }));
 
   define(env, "if", make<SpecialForm>([](Ref<List> args, Ref<List::Node> env) {
-    auto condition  =  match<Bool>(eval(list_after(0, args), env));
+    auto expr = list_after(0, args);
+    auto condition  =  match<Bool>(eval(expr, env));
+    // DEBUG(expr->show() << condition->show() << env_lookup(env, make<Atom>("cc"))->show())
     auto then_clause = match<Value>(list_after(1, args));
     auto else_clause = match<Value>(list_after(2, args));
 
@@ -110,5 +112,46 @@ void attach_special_forms(Ref<List::Node> env) {
     // DEBUG(computed->show())
     return computed;
   }));
+
+  define(env, "cond", make<SpecialForm>([](Ref<List> args, Ref<List::Node> env) {
+    while (auto head = match<List::Node>(args)) {
+      auto kv = match<List::Node>(head->first);
+      // DEBUG(kv->show() << "\n")
+      // DEBUG(env->show())
+      // eval k, v seperately
+      auto expr = list_after(0, kv);
+      auto body = list_after(1, kv);
+      // DEBUG(expr->show() << "\n")
+      if (auto condition = match<Bool>(eval(expr, env))) {
+        // DEBUG(" " << condition->show() << "\n")
+        if (condition->value) {
+          return eval(body, env);
+        }
+      } else {
+        error("malformed cond pair - firt entry must evaluate to a boolean");
+      }
+      args = head->rest;
+    }
+
+    Ref<Value> res = nil();
+    return res; // returning directly will screws with the type inferencer
+  }));
+
+  define(env, "while", make<SpecialForm>([](Ref<List> args, Ref<List::Node> env) {
+    auto cond_expr = list_after(0, args);
+    auto body = list_after(1, args);
+
+    Ref<Value> retVal = nil();
+
+    while (auto c = match<Bool>(eval(cond_expr, env))) {
+      if (!c->value) break;
+      retVal = eval(body, env);
+    }
+
+    return retVal;
+  }));
+
+
+
 
 }

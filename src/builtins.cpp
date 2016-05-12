@@ -16,6 +16,7 @@ Ref<List::Node> default_env() {
 
   // constants
   define(env, "pi", make<Float>(3.1415926));
+  define(env, "nil", nil());
 
   // functions
   define(env, "display", make<PrimitiveProcedure>([](Ref<List> args) {
@@ -166,6 +167,39 @@ Ref<List::Node> default_env() {
     return make<Integer>(a->value - b->value);
   }));
 
+  define(env, "+", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto a = match<Integer>(list_after(0, args));
+    auto b = match<Integer>(list_after(1, args));
+
+    if (!(a && b)) {
+      error("addition `+` is only defined on ints.");
+    }
+
+    return make<Integer>(a->value + b->value);
+  }));
+
+  define(env, "<", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto a = match<Integer>(list_after(0, args));
+    auto b = match<Integer>(list_after(1, args));
+
+    if (!(a && b)) {
+      error("lesser `<` is only defined on ints.");
+    }
+
+    return make<Bool>(a->value < b->value);
+  }));
+
+  define(env, "<=", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto a = match<Integer>(list_after(0, args));
+    auto b = match<Integer>(list_after(1, args));
+
+    if (!(a && b)) {
+      error("lesser-or-equal `<=` is only defined on ints.");
+    }
+
+    return make<Bool>(a->value <= b->value);
+  }));
+
   define(env, "nth", make<PrimitiveProcedure>([](Ref<List> args) {
     auto xs = match<List>(list_after(0, args));
     auto i = match<Integer>(list_after(1, args));
@@ -204,6 +238,7 @@ Ref<List::Node> default_env() {
   }));
 
   define(env, "get-member", make<PrimitiveProcedure>([](Ref<List> args) {
+    // DEBUG(args->show())
     auto xs = match<List::Node>(list_after(0, args));
     auto name = match<Atom>(list_after(1, args));
 
@@ -217,6 +252,65 @@ Ref<List::Node> default_env() {
       error("key `" + name->value + "` not found int " + xs->show());
       return list_after(0, args); // control will never get here
     }
+  }));
+
+  define(env, "set-member!", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto xs = match<List::Node>(list_after(0, args));
+    auto name = match<Atom>(list_after(1, args));
+    auto val = match<Value>(list_after(2, args));
+
+    if (!(xs && name && val)) {
+      error("set-member! argument error");
+    }
+
+    if (auto kv = match<List::Node>(alist::lookup(name, xs))) {
+       kv->rest = cons(val, nil());
+    } else {
+      error("key `" + name->value + "` not found int " + xs->show());
+    }
+
+    return nil();
+  }));
+
+
+  define(env, "and", make<PrimitiveProcedure>([](Ref<List> args) {
+    // DEBUG(args->show())
+
+    if (auto none = match<List::Empty>(args)) {
+      error("and takes at least one argument");
+    }
+
+    while (auto bs = match<List::Node>(args)) {
+      if (auto cond = match<Bool>(bs->first)) {
+        if (!cond->value) return make<Bool>(false);
+      } else {
+        error("all arguments to `and` must be booleans");
+      }
+      args = bs->rest;
+    }
+
+    return make<Bool>(true);
+  }));
+
+  define(env, "not", make<PrimitiveProcedure>([](Ref<List> args) {
+    if (auto b = match<Bool>(list_after(0, args))) {
+       return make<Bool>(!b->value);
+    } else {
+      error("argument to `not` must be boolean");
+    }
+
+    return make<Bool>(false);
+  }));
+
+  define(env, "cons", make<PrimitiveProcedure>([](Ref<List> args) {
+    auto car = match<Value>(list_after(0, args));
+    auto cdr = match<Value>(list_after(1, args));
+
+    if (!(car && cdr)) {
+      error("cons takes two arguments");
+    }
+
+    return cons(car, cons(cdr, nil()));
   }));
 
   return env;
